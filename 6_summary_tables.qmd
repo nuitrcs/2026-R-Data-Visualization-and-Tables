@@ -1,0 +1,549 @@
+---
+title: "6_summary_tables"
+format: html
+editor: visual
+---
+
+# Setup
+
+```{r}
+library(modelsummary)
+library(tidyverse)
+healthdata <- readr::read_csv("data/nhanes.csv")
+```
+
+# Overview of `{modelsummary}`
+
+Very often (if not always) you need to create tables for your papers. There are different packages to do that in R, and here we present an overview of `{modelsummary}`, one of the most comprehensive and flexible packages.
+
+[`modelsummary`](https://modelsummary.com/) helps create tables and plots to present descriptive statistics and to summarize statistical models. This notebook provides an overview and quick examples for you to know what the package can do. You will later learn more details about specific functions.
+
+## Data summaries
+
+The `{modelsummary}` package calls tables to present **descriptive statistics** [data summaries](https://modelsummary.com/vignettes/datasummary.html). You can create data summaries in two ways:
+
+1.  You can use `datasummary`, a flexible function that you can use for many tables presenting descriptive statistics.
+
+2.  You can use `datasummary_*` functions (`datasummary_balance`, `datasummary_correlation`, `datasummary_skim`, `datasummary_df`, `datasummary_crosstab`) for specific, commonly used tables.
+
+For example, just to give you a sense of what data summaries are, let's use `datasummary` to create a table displaying the mean and standard deviation of two variables -- don't worry about the syntax for now:
+
+```{r}
+datasummary(weight + height ~ Mean + SD, data = healthdata)
+```
+
+Or a cross tab between two variables using `datasummary_crosstab`:
+
+```{r}
+datasummary_crosstab(physically_active ~ gender, data = healthdata)
+```
+
+### Output formats
+
+All functions in the `datasummary_*` family accept the same `output` argument. Tables can be saved to various formats such as html, tex, docx, and png.
+
+Note that, often, saving the output to html and copy-pasting into Word works better than saving the output straight to Word.
+
+## Model summaries
+
+The `modelsummary` package also allows you to create [model summaries](https://modelsummary.com/vignettes/modelsummary.html) using the `modelsummary` function, which allows you to customize the information displayed in your tables. For example, you can rename, reorder, subset or omit parameter estimates; choose the goodness-of-fit statistics to display; display various “robust” standard errors or confidence intervals; add titles, footnotes, or source notes; insert stars or custom characters to indicate levels of statistical significance; or add rows with supplemental information about your models.
+
+For example, let's fit some linear regressions and create a regression table -- again, don't worry about the details of the syntax for now, we're just giving you a sense of what's available in `modelsummary`:
+
+```{r}
+lm1 <- lm(weight ~ height + physically_active + gender, data = healthdata)
+lm2 <- lm(weight ~ height + physically_active, data = healthdata)
+lm3 <- lm(weight ~ height, data = healthdata)
+
+modelsummary(list(lm1, lm2, lm3))
+```
+
+### Supported models
+
+One of the nice things about `modelsummary` is that it supports a wide variety of models. It automatically supports all models supported by the `tidy` function of the [`broom` package](https://broom.tidymodels.org/) or the `parameters` function of the [`parameters` package](https://easystats.github.io/parameters/).
+
+You can find the supported models with `supported_models`:
+
+```{r}
+supported_models()
+```
+
+You can check if a model is supported using `get_estimates`:
+
+```{r}
+get_estimates(lm1)
+```
+
+### Output formats
+
+`modelsummary` accept an `output` argument. Tables can be saved to various formats such as html, tex, docx, and png.
+
+Note that, often, saving the output to html and copy-pasting into Word works better than saving the output straight to Word.
+
+## Model plots
+
+`modelsummary` allows you to plot model estimates and confidence intervals using `modelplot`. You can subset, rename, reorder, and customize plots using the same logic than in the `modelsummary` function.
+
+```{r}
+modelplot(lm1)
+```
+
+# Data summary Functions
+
+## `datasummary_*`
+
+You can use `datasummary_*` functions (`datasummary_balance`, `datasummary_correlation`, `datasummary_skim`, `datasummary_df`, `datasummary_crosstab`) for specific, commonly used tables.
+
+### `datasummary_skim`
+
+[`datasummary_skim`](https://modelsummary.com/man/datasummary_skim.html) provides you a quick overview of numeric and categorical variables. It will summarize all variables in the data frame.
+
+```{r}
+datasummary_skim(healthdata)
+```
+
+To focus on a subset of columns, subset the data first.
+
+```{r}
+healthdata %>% 
+  select(weight, height, physically_active, gender) %>%
+  datasummary_skim()
+```
+
+#### `datasummary_correlation`
+
+[`datasummary_correlation`](https://modelsummary.com/man/datasummary_correlation.html) generates a correlation table for all numeric variables in your data set. Here we select a subset just to make it easier to see:
+
+```{r}
+healthdata %>% 
+  select(weight, height, bp_sys1, bp_dia1, age) %>%
+  datasummary_correlation()
+```
+
+#### `datasummary_crosstab`
+
+[`datasummary_crosstab`](https://modelsummary.com/man/datasummary_crosstab.html) creates cross tabulations for categorical variables:
+
+```{r}
+datasummary_crosstab(physically_active ~ gender, data = healthdata)
+```
+
+##### TRY IT
+
+Create a cross tab of `work_status` by `survey_year`.
+
+```{r}
+
+```
+
+## `datasummary`
+
+`datasummary_*` functions allow you to create specific, commonly used tables. What if you want to create a table that's not implemented as one of the `datasummary_*` functions?
+
+You can use [`datasummary`](https://modelsummary.com/man/datasummary.html), a flexible function that you can use for many tables.
+
+Let's start slowly, creating simple tables. While simple tables don't show all the power of `datasummary`, they are useful to start getting you familiar with the syntax. We'll slowly build to more complex tables.
+
+### Formula syntax
+
+`datasummary` tables are specified using a 2-sided formula, divided by a tilde `~`. The left-hand side describes the rows; the right-hand side describes the columns.
+
+`modelsummary` provides shortcuts for common functions. For example, the `Mean` function is a shortcut supplied by `modelsummary`, and it is equivalent to `mean(x,na.rm=TRUE)`.
+
+Let's create a table that shows the average of a variable:
+
+```{r}
+datasummary(weight ~ Mean, data = healthdata)
+```
+
+We can switch the order of `Mean` and `weight` -- keeping in mind that the left-hand side describes the rows and the right-hand side describes the columns:
+
+```{r}
+datasummary(Mean ~ weight, data = healthdata)
+```
+
+In addition to `Mean`, `modelsummary` supplies these functions: `SD`, `Min`, `Max`, `Median`, `P0`, `P25`, `P50`, `P75`, `P100`, `Histogram`, and a few more.
+
+### Custom summary functions
+
+What if you want to use a function that is not provided hy `modelsummary`? You can create your own summary functions. They need to take a vector and return a single value.
+
+Here we're going to create a function to calculate the range of a numeric variable. Then we're using that function to create a table with the range of a variable. If you're not familiar with creating functions, don't worry about it.
+
+```{r}
+Range <- function(x) max(x, na.rm = TRUE) - min(x, na.rm = TRUE)
+
+datasummary(Range ~ weight, data = healthdata)
+```
+
+### Concatenating with `+`
+
+So far we've been creating very simple tables with just one variable. What if you want to include more variables?
+
+You can use `+` to include more rows and columns.
+
+For example, let's create a table with two variables (one in each row) and the mean and standard deviation of each of the variables (in the columns):
+
+```{r}
+datasummary(weight + height ~ Mean + SD, data = healthdata)
+```
+
+### Nesting with `*`
+
+Often, you want to show descriptive statistics of one or more numerical variables by the levels of another categorical variable. For this, `datasummary` can nest variables and statistics inside categorical variables using the `*` symbol. When applying the the `*` operator to factor, character, or logical variables, columns or rows will automatically be nested.
+
+Let's create a table with two numerical variables (in the rows), showing their mean and standard deviation for the levels of a third, categorical variable:
+
+```{r}
+datasummary(weight + height ~ (Mean + SD) * physically_active, data = healthdata)
+```
+
+### TRY IT
+
+Create a table showing the mean and standard deviation of `age` and `sleep_hours` by `gender`.
+
+```{r}
+
+```
+
+### Cross tabs and counts
+
+Let's create a cross tab of two categorical variables:
+
+```{r}
+datasummary(physically_active ~ gender, data = healthdata)
+```
+
+What if want to add the total counts? We can use `N`.
+
+For example, let's add `N` to the right-hand side of the equation to get the row totals:
+
+```{r}
+datasummary(physically_active ~ gender + N, data = healthdata)
+```
+
+We can also get the column totals adding `N` to the left-hand side of the equation:
+
+```{r}
+datasummary(physically_active + N ~ gender, data = healthdata)
+```
+
+### Percentages
+
+If you want percentages instead of counts, you can use `Percent()` -- notice that it's `Percent()` and not `Percent`.
+
+Row percentages:
+
+```{r}
+datasummary(physically_active ~ gender + Percent(), data = healthdata)
+```
+
+Column percentages:
+
+```{r}
+datasummary(physically_active + Percent() ~ gender, data = healthdata)
+```
+
+Percentages for each intersection of categories:
+
+```{r}
+datasummary(physically_active * gender ~ Percent(), data = healthdata)
+```
+
+### Counts and percentages
+
+You can also combine counts and percentages. For example, let's get the count and percentage for each category:
+
+```{r}
+datasummary(physically_active * gender ~ N + Percent(), data = healthdata)
+```
+
+You can further add `1` to the left-hand side to include a row with the total number of observations:
+
+```{r}
+datasummary(physically_active * gender + 1 ~ N + Percent(), data = healthdata)
+```
+
+### Rounding
+
+You can use `fmt` to set the printing format of numeric values. It accepts a single number representing the number of digits after the period, or a string to be passed to the `sprintf` function:
+
+```{r}
+datasummary(physically_active * gender + 1 ~ N + Percent(), data = healthdata, fmt = 4)
+```
+
+### TRY IT
+
+Create a cross tab of `work_status` by `survey_year`. Add counts and percentages. Round to one decimal.
+
+```{r}
+
+```
+
+### Titles and notes
+
+You can add a title and notes to your table using `title` and `notes` -- notice that `notes` takes a vector of notes:
+
+```{r}
+datasummary(physically_active * gender + 1 ~ N + Percent(), 
+            data = healthdata, 
+            fmt = 4,
+            title = "What a nice table!",
+            notes = c("One note.", "Another note."))
+```
+
+### Alignment
+
+You can align columns using the `align` argument. `align` should be a string of length equal to the number of columns, and which includes only the letters “l”, “c”, or “r”:
+
+```{r}
+datasummary(physically_active * gender + 1 ~ N + Percent(), 
+            data = healthdata, 
+            fmt = 4,
+            title = "What a nice table!",
+            notes = c("One note.", "Another note."),
+            align = 'lcrl')
+```
+
+# `modelsummary` Functions
+
+The `modelsummary` package allows you to create [model summaries](https://modelsummary.com/vignettes/modelsummary.html) using the `modelsummary` function, which allows you to customize the information displayed in your tables.
+
+## One model
+
+Let's fit a regression model to use for tables:
+
+```{r}
+lm1 <- lm(weight ~ height + physically_active + gender, data = healthdata)
+summary(lm1)
+```
+
+Very simply, with `modelsummary`, you can create a regression table for one model:
+
+```{r}
+modelsummary(lm1)
+```
+
+## Several models
+
+Let's fit two more models to have a more complex table:
+
+```{r}
+lm2 <- lm(weight ~ height + physically_active, data = healthdata)
+lm3 <- lm(weight ~ height, data = healthdata)
+```
+
+To create a table with more than one regression model, you need to put the models inside of a list:
+
+```{r}
+modelsummary(list(lm1, lm2, lm3))
+```
+
+### TRY IT
+
+Create a table for the three models in the code below.
+
+```{r}
+lme1 <- lm(cholesterol ~ age, data = healthdata)
+lme2 <- lm(cholesterol ~ age + gender, data = healthdata)
+lme3 <- lm(cholesterol ~ age + gender + weight, data = healthdata)
+
+
+```
+
+## Customizing the coefficients you present
+
+As you can see, it's very easy to create a table. However, chances are you're not using that table as is for a paper! `modelsummary` is very flexible and allows you to customize what you present.
+
+Let's start by customizing the coefficients that you present.
+
+### `coef_omit`
+
+You can subset the coefficients to present using `coef_omit`, which accepts a vector of integer or a regular expression.
+
+For example, let's omit the intercept:
+
+```{r}
+modelsummary(list(lm1, lm2, lm3), coef_omit = 1)
+```
+
+We can also do it with a regular expresion (a very simple one in this case):
+
+```{r}
+modelsummary(list(lm1, lm2, lm3), coef_omit = "Intercept")
+```
+
+### `coef_rename`
+
+`coef_rename` allows you to rename coefficients passing a named character vector:
+
+```{r}
+modelsummary(list(lm1, lm2, lm3), 
+             coef_rename = c("(Intercept)" = "Intercept",
+                             "height" = "Height", 
+                             "physically_activeYes" = "Active", 
+                             "gendermale" = "Male"))
+```
+
+### `coef_map`
+
+With `coef_map` you can rename, reorder, and subset coefficients at the same time passing a named character vector:
+
+```{r}
+modelsummary(list(lm1, lm2, lm3), 
+             coef_map = c("physically_activeYes" = "Active", 
+                          "gendermale" = "Male", 
+                          "height" = "Height",
+                          "(Intercept)" = "Intercept"))
+```
+
+### `include_reference`
+
+You can include an empty row for the reference category by adding `include_reference = TRUE`:
+
+```{r}
+modelsummary(list(lm1, lm2, lm3), include_reference = TRUE)
+```
+
+### TRY IT
+
+Go back to the table that you created in the previous exercise and omit the intercept and rename the coefficients.
+
+```{r}
+modelsummary(list(lme1, lme2, lme3))
+```
+
+## Customizing the statistics you present
+
+In addition to customizing the coefficients that you present, another big thing that you can customize are the statistics that you present.
+
+### `statistic`
+
+By default, `modelsummary` prints the coefficient’s standard error in parentheses below the corresponding estimate. The value of this uncertainty statistic is determined by the `statistic` argument. The `statistic` argument accepts any of the column names produced by `get_estimates(model)`.
+
+```{r}
+get_estimates(lm1)
+```
+
+`statistic = NULL` omits all statistics for the coefficients.
+
+#### P-value
+
+`statistic = "p.value"` adds p-values.
+
+```{r}
+modelsummary(list(lm1, lm2, lm3), 
+             coef_map = c("physically_activeYes" = "Active", 
+                          "gendermale" = "Male", 
+                          "height" = "Height",
+                          "(Intercept)" = "Intercept"),
+             statistic = "p.value")
+```
+
+#### Various statistics
+
+What if you want both the standard error and the p-value? You can provide a [glue string](https://glue.tidyverse.org/) for more complicated results.
+
+The `glue` syntax allows you to include R expressions inside of strings by using `{}`. This can make your code more readable.
+
+```{r}
+modelsummary(list(lm1, lm2, lm3), 
+             coef_map = c("physically_activeYes" = "Active", 
+                          "gendermale" = "Male", 
+                          "height" = "Height",
+                          "(Intercept)" = "Intercept"),
+             statistic = "{std.error} ({p.value})")
+```
+
+### `gof_omit`
+
+`gof_omit` is a regular expression to detect the names of the statistics which should be excluded from the table of **g**oodness **o**f **f**it statistics in the bottom section of the table.
+
+In this case, we're specifying the goodness of fit statistics that we don't want and combining them with `|`, which stands for "or".
+
+```{r}
+modelsummary(list(lm1, lm2, lm3), 
+             coef_map = c("physically_activeYes" = "Active", 
+                          "gendermale" = "Male", 
+                          "height" = "Height",
+                          "(Intercept)" = "Intercept"),
+             statistic = "{std.error} ({p.value})",
+             gof_omit = "AIC|BIC|Log.Lik|RMSE|R2 Adj.")
+```
+
+### TRY IT
+
+Go back to the table that you created in the previous exercise and customize the statistics that you present.
+
+```{r}
+
+```
+
+## Other arguments
+
+We already saw how to customize the coefficients and the statistics presented in the table. There are many other things that you can customize, some of which we present in this section.
+
+### `stars`--marks of statistical significance
+
+You can add stars to mark statistical significance by adding `stars = TRUE`:
+
+```{r}
+modelsummary(list(lm1, lm2, lm3), 
+             coef_map = c("physically_activeYes" = "Active", 
+                          "gendermale" = "Male", 
+                          "height" = "Height",
+                          "(Intercept)" = "Intercept"),
+             gof_omit = "AIC|BIC|Log.Lik|RMSE|R2 Adj.",
+             stars = TRUE)
+```
+
+You can also add stars in `statistic`:
+
+```{r}
+modelsummary(list(lm1, lm2, lm3), 
+             coef_map = c("physically_activeYes" = "Active", 
+                          "gendermale" = "Male", 
+                          "height" = "Height",
+                          "(Intercept)" = "Intercept"),
+             statistic = "{std.error} ({p.value}){stars}",
+             gof_omit = "AIC|BIC|Log.Lik|RMSE|R2 Adj.")
+```
+
+### Title
+
+You can add a title to your table with a string in `title`:
+
+```{r}
+modelsummary(list(lm1, lm2, lm3), 
+             coef_map = c("physically_activeYes" = "Active", 
+                          "gendermale" = "Male", 
+                          "height" = "Height",
+                          "(Intercept)" = "Intercept"),
+             statistic = "{std.error} ({p.value}){stars}",
+             gof_omit = "AIC|BIC|Log.Lik|RMSE|R2 Adj.",
+             title = "Awesome table")
+```
+
+### Notes
+
+You can add notes to your table passing a list of strings to `notes`:
+
+```{r}
+modelsummary(list(lm1, lm2, lm3), 
+             coef_map = c("physically_activeYes" = "Active", 
+                          "gendermale" = "Male", 
+                          "height" = "Height",
+                          "(Intercept)" = "Intercept"),
+             statistic = "{std.error} ({p.value}){stars}",
+             gof_omit = "AIC|BIC|Log.Lik|RMSE|R2 Adj.",
+             title = "Awesome table",
+             notes = list("First note.", "Second note."))
+```
+
+### TRY IT
+
+Go back to the table that you created in the previous exercise and change some of the formatting.
+
+```{r}
+
+```

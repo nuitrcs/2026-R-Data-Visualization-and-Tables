@@ -1,0 +1,675 @@
+---
+title: "Untitled"
+format: html
+editor: visual
+---
+
+## Setup
+
+```{r}
+library(tidyverse)
+healthdata <- readr::read_csv("data/nhanes.csv")
+```
+
+# Scales
+
+Scales help you translate the visuals of a graph into an understanding of the data, for example, with guides like axes or legends. Scales are responsible for updating the limits of a plot, setting the breaks, and formatting the labels.
+
+## Default scales
+
+Once you have data, mapping, and layers, you'll have scales by default.
+
+Let's start with a scatter plot with color:
+
+```{r}
+ggplot(data = healthdata, aes(x = height, y = weight, color = physically_active)) +
+  geom_point() 
+```
+
+Let's "add some scales:"
+
+```{r}
+ggplot(data = healthdata, aes(x = height, y = weight, color = physically_active)) +
+  geom_point() +
+  scale_x_continuous() +
+  scale_y_continuous() +
+  scale_color_discrete()
+```
+
+Wait, it looks the same! Yes, it's because `ggplot2` added default scales.
+
+Notice the relation between scales and mappings (`aes`). There is a scale function for each part of the data (variable) referred to in the mapping -- x, y, and color.
+
+## Replacing scales
+
+If you want to change the default scales, you can use functions that start with `scale_`, followed by the aesthetic they modify (x, y, color), and ending with the type of scale that you want (so `scale_<aesthetic>_<type>`).
+
+For example, say we want to change the colors. There are [color scales for continuous data](https://ggplot2-book.org/scales-colour.html#sec-colour-continuous) and [color scales for discrete data](https://ggplot2-book.org/scales-colour.html#sec-colour-discrete) that you can use off-the-shelf, for example, `scale_color_viridis_d`:
+
+```{r}
+ggplot(data = healthdata, aes(x = height, y = weight, color = physically_active)) +
+  geom_point() +
+  scale_x_continuous() +
+  scale_y_continuous() +
+  scale_color_viridis_d()
+```
+
+You can also change the colors manually within `scale_color_manual`:
+
+```{r}
+ggplot(data = healthdata, aes(x = height, y = weight, color = physically_active)) +
+  geom_point() +
+  scale_x_continuous() +
+  scale_y_continuous() +
+  scale_color_manual(values = c("No" = "orange", "Yes" = "blue"))
+```
+
+Let's look at a few other common things that you may want to do with scales.
+
+### TRY IT
+
+Change the code below to use a [continuous color scale](https://ggplot2-book.org/scales-colour.html#sec-colour-continuous):
+
+```{r}
+ggplot(data = healthdata, aes(x = height, y = weight, color = cholesterol)) +
+  geom_point()
+```
+
+## Update the axes
+
+One of the things that you may want to do with scales is update the axes, which are key on conveying your plot's information.
+
+### Axes limits
+
+You may want to update the axes limits to show a specific region of the plot that's important for your argument.
+
+To show how to update the axes limits, let's start with a basic scatter plot with a smoothed line:
+
+```{r}
+ggplot(data = healthdata, aes(x = height, y = weight)) +
+  geom_point()
+```
+
+Let's now adjust the axes limits:
+
+```{r}
+ggplot(data = healthdata, aes(x = height, y = weight)) +
+  geom_point() +
+  scale_x_continuous(limits = c(150, 170)) +
+  scale_y_continuous(limits = c(100, 200))
+```
+
+Okay, it *seems* that we Zoomed on a section of the graph. However, it's important to keep in mind that **adjusting the limits of the axes is different than Zooming in.**
+
+To notice the difference, it's helpful to add a regression line.
+
+Let's start without adjusting the axes limits -- pay attention to the slope of the line:
+
+```{r}
+ggplot(data = healthdata, aes(x = height, y = weight)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE)
+```
+
+Now let's adjust the axes limits and notice what happens to the slope of the line:
+
+```{r}
+ggplot(data = healthdata, aes(x = height, y = weight)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  scale_x_continuous(limits = c(150, 170)) +
+  scale_y_continuous(limits = c(100, 200))
+```
+
+The line was going up and now it's going down! This is because **adjusting the axes limits using scales deletes the data points outside of the range.** Thus, the regression line is being fit only in a subset of the data. If you want to do this, it's probably a better idea to subset your data before your plot, to make it more clear to yourself and others what you're doing and avoid any unintended consequences.
+
+#### BONUS: Zooming in
+
+**If you just want to zoom in, you can use coordinates.** That said, zooming in a plot it's not very common. If you want to highlight specific areas of the plot because something interesting is happening there, you can use annotations or, also, subset the data.
+
+```{r}
+ggplot(data = healthdata, aes(x = height, y = weight)) +
+  geom_point() +
+  coord_cartesian(xlim = c(150, 170), ylim = c(100, 200))
+```
+
+Now let's add the regression line and see if the slope is the same:
+
+```{r}
+ggplot(data = healthdata, aes(x = height, y = weight)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  coord_cartesian(xlim = c(150, 170), ylim = c(100, 200))
+```
+
+Wait, where is the regression line? Well, let's remember the first plot:
+
+```{r}
+ggplot(data = healthdata, aes(x = height, y = weight)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE)
+```
+
+The regression line doesn't pass through the area that we Zoomed in. So, the line is there, it hasn't changed, but we don't see it, because we're just Zooming in!
+
+### TRY IT
+
+In the plot below, limit the x axis between 150 and 190.
+
+```{r}
+ggplot(data = healthdata, aes(x = height)) +
+  geom_histogram()
+```
+
+### Axes ticks
+
+You may also want to update the axes ticks, or the markers and labels in the axes.
+
+#### Breaks
+
+One of the things that you can do is update the breaks.
+
+To show how it works, let's start with a simple scatter plot:
+
+```{r}
+ggplot(data = healthdata, aes(x = height, y = weight)) +
+  geom_point() 
+```
+
+Say we want to read the height in more detail. Let's adjust the axes breaks for that.
+
+To do that, we're going to use the `seq` function, which generates sequences. For example:
+
+```{r}
+seq(1, 10)
+```
+
+You can also specify the step:
+
+```{r}
+seq(1, 10, by = 2)
+```
+
+For our plot, we can generate a sequence from 140 to 200 by 5:
+
+```{r}
+seq(140, 200, by = 5)
+```
+
+Then, we can pass that sequence to the `breaks` argument in `scale_x_continuous` to change the axes ticks:
+
+```{r}
+ggplot(data = healthdata, aes(x = height, y = weight)) +
+  geom_point() +
+  scale_x_continuous(breaks = seq(140, 200, by = 5))
+```
+
+#### Labels
+
+You can also update the labels in the ticks.
+
+To show that, let's start with a simple scatter plot:
+
+```{r}
+ggplot(data = healthdata, aes(x = height, y = weight)) +
+  geom_point()
+```
+
+Let's add that the height is in cm. For that, we're going to use the `paste` function to put together the number and "cm". `paste` takes a vector and puts the elements together with a space in between:
+
+```{r}
+example_vector <- c(1,2,3,4)
+paste(example_vector, "cm")
+```
+
+The `labels` argument can take a function that takes the label and does something. So, we can create a function `add_cm` that takes the number and adds "cm":
+
+```{r}
+add_cm <- function(x) paste(x, "cm")
+
+add_cm(1)
+
+add_cm(example_vector)
+```
+
+Now we can use that function inside of the scale:
+
+```{r}
+ggplot(data = healthdata, aes(x = height, y = weight)) +
+  geom_point() +
+  scale_x_continuous(labels = add_cm) 
+```
+
+Instead, since we're not planning to use that function anywhere else, we can use an anonymous function:
+
+```{r}
+ggplot(data = healthdata, aes(x = height, y = weight)) +
+  geom_point() +
+  scale_x_continuous(labels = function(x) paste(x, "cm")) 
+```
+
+Instead of using a function, we can pass a vector. In that case, though, it's important that the vector passed to `labels` is the same as the vector of `breaks`. For that, we're going to use `seq` again, in this case from the minimum to the maximum value:
+
+```{r}
+ggplot(data = healthdata, aes(x = height, y = weight)) +
+  geom_point() +
+  scale_x_continuous(breaks = seq(min(healthdata$height), max(healthdata$height), by = 10), labels = paste0(seq(min(healthdata$height), max(healthdata$height), by = 10), "cm"))
+```
+
+## Update the legend
+
+You may also want to update the legend of the plot.
+
+### Add legend title
+
+For example, you may want to add a legend title.
+
+To show that, let's start with a scatter plot with color:
+
+```{r}
+ggplot(data = healthdata, aes(x = height, y = weight, color = physically_active)) +
+  geom_point() +
+  scale_color_manual(values = c("No" = "orange", "Yes" = "blue"))
+```
+
+The default title is the name of the variable. So, you could change the name of the variable. However, you may not want to do that to keep clean names, so you can also change it in scales:
+
+```{r}
+ggplot(data = healthdata, aes(x = height, y = weight, color = physically_active)) +
+  geom_point() +
+  scale_color_manual(values = c("No" = "orange", "Yes" = "blue"), name = "Activity status")
+```
+
+### Changing legend keys
+
+You may also want to change the legend keys. The default keys are the values of the variable. So, you could change the underlying values or, as we're going to show next, use scales.
+
+To show this,let's now change the legend keys:
+
+```{r}
+ggplot(data = healthdata, aes(x = height, y = weight, color = physically_active)) +
+  geom_point() +
+  scale_color_manual(values = c("No" = "orange", "Yes" = "blue"), name = "Activity status", labels = c("No" = "Not active", "Yes" = "Active"))
+```
+
+### TRY IT
+
+In the plot below, change the title of the legend.
+
+```{r}
+ggplot(data = healthdata, aes(x = height)) +
+  geom_histogram(aes(fill = marital_status))
+```
+
+# Themes
+
+Scale functions control visual aspects of the plot that depend on the data. There are other visual aspects that you may want to change independently of the data (the background color, the font, the size of the legend). You can do this with themes.
+
+## Changing themes
+
+`ggplot2` provides a theme by default, but you can decide among other built-in themes with functions that start with `theme_`, followed by the name of the theme. For example, a nice one is `theme_minimal()`. It's nice because it's simple. In general, the simpler the plot the better. You want to call attention to your argument -- not weird aesthetic choices in your plot.
+
+### Themes available in `ggplot2`
+
+`ggplot2` makes some aesthetic decisions for you by default. You have already seen these, but let's start with a simple scatter plot here:
+
+```{r}
+ggplot(data = healthdata, aes(x = height, y = weight)) +
+  geom_point()
+```
+
+If you don't like the defaults, you can use one of the built-in themes that come with `ggplot2` off-the-shelf. As we said earlier, `theme_minimal` is a nice, simple one:
+
+```{r}
+ggplot(data = healthdata, aes(x = height, y = weight)) +
+  geom_point() +
+  theme_minimal()
+```
+
+There are other themes, such as `theme_dark`, but remember that in scientific data visualization you're not trying to add necessary complexity:
+
+```{r}
+ggplot(data = healthdata, aes(x = height, y = weight)) +
+  geom_point() +
+  theme_dark()
+```
+
+A good rule of thumb is the maximize the "data-to-ink ratio" -- maximize the amount of ink spent on representing the data as opposed to other aspects of the plot.
+
+You can find other themes by typing `theme_` and see the auto-complete options.
+
+### Themes available in other packages
+
+Besides the built-in themes in `ggplot2`, you can use [`ggthemes`](https://yutannihilation.github.io/allYourFigureAreBelongToUs/ggthemes/), which provides other themes that you can use.
+
+If you don't already have `ggthemes`, you will have to install the library:
+
+```{r, eval=FALSE}
+install.packages("ggthemes")
+```
+
+Since we're using a single function, instead of loading the whole library with `library(ggthemes)`, we can call the specific function with `ggthemes::<function>`:
+
+```{r}
+ggplot(data = healthdata, aes(x = height, y = weight)) +
+  geom_point() +
+  ggthemes::theme_economist()
+```
+
+### TRY IT
+
+Pick a fun theme for the plot below.
+
+```{r}
+ggplot(data = healthdata, aes(x = health_level, y = income_poverty_ratio)) +
+  geom_boxplot()
+```
+
+## Changing individual elements of the theme
+
+You can also change specific aspects of the theme with the `theme` function. The elements of the theme are:
+
+1.  Plot elements (`plot.background`, `plot.title`, `plot.margin`).
+
+2.  Axis elements (`axis.line`, `axis.text`, `axis.text.x`, `axis.text.y`, `axis.title`, `axis.title.x`, `axis.title.y`, `axis.ticks`, `axis.ticks.length`).
+
+3.  Legend elements (`legend.background`, `legend.key`, `legend.key.size`, `legend.key.height`, `legend.key.width`, `legend.margin`, `legend.text`, `legend.text.align`, `legend.title`, `legend.title.align`).
+
+4.  Panel elements (`panel.background`, `panel.border`, `panel.grid.major`, `panel.grid.major.x`, `panel.grid.major.y`, `panel.grid.minor`, `panel.grid.minor.x`, `panel.grid.minor.y`, `aspect.ratio`).
+
+5.  Faceting elements (`strip.background`, `strip.text`, `strip.text.x`, `strip.text.y`, `panel.spacing`, `panel.spacing.x`, `panel.spacing.y`).
+
+You can change A LOT of things...
+
+For each element there is an element function that describes the visual properties of the element. For example, for `plot.title`, `element_text` controls the font size, color, and face. You could, say, specify `theme(plot.title = element_text(color = "red"))`.
+
+Let's look at a couple of common element things that you may want to customize.
+
+Let's start with this graph:
+
+```{r}
+ggplot(data = healthdata, aes(x = height, y = weight)) +
+  geom_point()
+```
+
+### Plot
+
+Let's first look at the plot elements of the theme, which affect the plot as a whole.
+
+#### Title
+
+A major one is the title, which every plot should have!
+
+Let's start with this plot:
+
+```{r}
+ggplot(data = healthdata, aes(x = height, y = weight)) +
+  geom_point() +
+  labs(title = "Height is a good predictor of weight")
+```
+
+You can customize the text of the title to make it conform to a journal's style guide. For now, let's have some fun here...
+
+```{r}
+ggplot(data = healthdata, aes(x = height, y = weight)) +
+  geom_point() +
+  labs(title = "Height is a good predictor of weight") +
+  theme(plot.title = element_text(color = "red", face = "bold", size = 30, family = "Times New Roman"))
+```
+
+#### Margins
+
+You can also change the margins around the area of the plot where the data are.
+
+Let's start with this plot:
+
+```{r}
+ggplot(data = healthdata, aes(x = height, y = weight)) +
+  geom_point() 
+```
+
+Now let's change the margins:
+
+```{r}
+ggplot(data = healthdata, aes(x = height, y = weight)) +
+  geom_point() +
+  theme(plot.margin = margin(t = 1, r = 1, b = 1, l = 1, unit = "cm"))
+```
+
+### Axis
+
+Let's now turn to the theme elements that control the appearance of the axes.
+
+#### Tick labels
+
+Tick labels are one of the major axis elements.
+
+Let's start with this plot:
+
+```{r}
+ggplot(data = healthdata, aes(x = height, y = weight)) +
+  geom_point() 
+```
+
+Let's now change the text of the tick labels:
+
+```{r}
+ggplot(data = healthdata, aes(x = height, y = weight)) +
+  geom_point() +
+  theme(axis.text = element_text(color = "purple", face = "italic", family = "Verdana"))
+```
+
+#### Titles
+
+You can also change the text of the axes titles.
+
+Let's start with this plot:
+
+```{r}
+ggplot(data = healthdata, aes(x = height, y = weight)) +
+  geom_point() 
+```
+
+Now let's change the axes titles.
+
+```{r}
+ggplot(data = healthdata, aes(x = height, y = weight)) +
+  geom_point() +
+  theme(
+    axis.title.x = element_text(color = "green", family = "Arial"),
+    axis.title.y = element_text(color = "brown", family = "Comic Sans MS"))
+```
+
+### Legend
+
+Let's now turn to the legend elements, which control the appearance of all legends.
+
+Let's work with this plot (with a variable mapped to color) to have a legend:
+
+```{r}
+ggplot(data = healthdata, aes(x = height, y = weight, color = physically_active)) +
+  geom_point()
+```
+
+#### Margins
+
+One of the legend elements that you can change are the margins around the legend:
+
+```{r}
+ggplot(data = healthdata, aes(x = height, y = weight, color = physically_active)) +
+  geom_point() +
+  theme(legend.margin = margin(r = 50, l = 50))
+```
+
+#### Legend labels
+
+You can also change the text of the legend labels.
+
+Remember our base plot:
+
+```{r}
+ggplot(data = healthdata, aes(x = height, y = weight, color = physically_active)) +
+  geom_point()
+```
+
+Now let's change the text of the legend labels:
+
+```{r}
+ggplot(data = healthdata, aes(x = height, y = weight, color = physically_active)) +
+  geom_point() +
+  theme(legend.text = element_text(size = 30, family = "serif", color = "gray85"))
+```
+
+#### Legend title
+
+You can also change the text of the legend title.
+
+Remember our base plot:
+
+```{r}
+ggplot(data = healthdata, aes(x = height, y = weight, color = physically_active)) +
+  geom_point()
+```
+
+Now let's change the text of the legend title:
+
+```{r}
+ggplot(data = healthdata, aes(x = height, y = weight, color = physically_active)) +
+  geom_point() +
+  theme(legend.title = element_text(size = 10, family = "Courier New"))
+```
+
+If you want to change the title of the legend, you can use `labs` or scales (`scale_*`).
+
+### Panel
+
+Let's now turn to the panel elements, which control the appearance of the plotting panels.
+
+#### Minor grid lines
+
+One of the main things that you can control in the plotting panels are the grid lines, both the minor and major ones.
+
+Let's start with the minor grid lines. The minor grid lines correspond to the breaks between the major breaks in the axes -- or the ones with the tick labels.
+
+Remember our simple plot:
+
+```{r}
+ggplot(data = healthdata, aes(x = height, y = weight)) +
+  geom_point()
+```
+
+Now let's remove the minor grid lines:
+
+```{r}
+ggplot(data = healthdata, aes(x = height, y = weight)) +
+  geom_point() +
+  theme(panel.grid.minor = element_blank())
+```
+
+#### Major grid lines
+
+Let's now turn to the major grid lines. The major grid lines correspond to the major breaks on the axes -- or the ones with the labels.
+
+Remember our simple plot:
+
+```{r}
+ggplot(data = healthdata, aes(x = height, y = weight)) +
+  geom_point()
+```
+
+Now let's remove the major grid lines:
+
+```{r}
+ggplot(data = healthdata, aes(x = height, y = weight)) +
+  geom_point() +
+  theme(panel.grid.major = element_blank())
+```
+
+### Panel background
+
+Let's now turn to the background of the plot (under the data).
+
+Remember our simple plot:
+
+```{r}
+ggplot(data = healthdata, aes(x = height, y = weight)) +
+  geom_point()
+```
+
+Let's remove all the background:
+
+```{r}
+ggplot(data = healthdata, aes(x = height, y = weight)) +
+  geom_point() +
+  theme(panel.background = element_blank())
+```
+
+### TRY IT
+
+Adjust some of the plot, axis, legend, and panel theme elements of the plot below to make it look professional (i.e., what you'd see in a journal).
+
+```{r}
+ggplot(data = healthdata, aes(x = age, y = pulse)) +
+  geom_point()
+```
+
+## Re-using a custom theme
+
+Wow, we've changed a lot! A LOT! You may be thinking: "I do so many plots, I don't want to be changing all these elements each time!" And you're right. You don't want to be doing that each time if you can avoid it...
+
+If you are creating a lot of similar plots for a paper, or if you (or your lab) typically create(s) a lot of similar plots, you may want to create a really awesome custom theme that you like, and re-use that custom theme.
+
+Once you create a custom theme, you can assign it to a variable and re-use it later:
+
+```{r}
+my_awesome_theme <- theme(
+    plot.title = element_text(color = "red", face = "bold", size = 30, family = "Times New Roman"),
+    plot.margin = margin(t = 1, r = 1, b = 1, l = 1, unit = "cm"),
+    axis.text = element_text(color = "purple", face = "italic", family = "Verdana"),
+    axis.title.x = element_text(color = "green", family = "Arial"),
+    axis.title.y = element_text(color = "brown", family = "Comic Sans MS"),
+    legend.margin = margin(r = 50, l = 50),
+    legend.text = element_text(size = 30, family = "serif", color = "gray85"),
+    legend.title = element_text(size = 10, family = "Courier New"),
+    panel.grid.minor = element_blank(),
+    panel.grid.major = element_blank(),
+    panel.background = element_blank())
+```
+
+You could have that code in a module and [`source`](https://www.rdocumentation.org/packages/base/versions/3.6.2/topics/source) it.
+
+Remember our base plot:
+
+```{r}
+ggplot(data = healthdata, aes(x = height, y = weight, color = physically_active)) +
+  geom_point() +
+  labs(title = "Height is a good predictor of weight")
+```
+
+Then you simply add the variable to which you assigned the custom theme:
+
+```{r}
+ggplot(data = healthdata, aes(x = height, y = weight, color = physically_active)) +
+  geom_point() +
+  labs(title = "Height is a good predictor of weight") +
+  my_awesome_theme
+```
+
+In `my_awesome_theme`, we created a theme from scratch, meaning, changing individual elements. You can also start with a complete, built-in theme (or a theme from `ggthemes`), add to it, and save that:
+
+```{r}
+better_theme <- theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold", family = "Times New Roman"),
+        axis.title = element_text(family = "Times New Roman"),
+        legend.text = element_text(family = "Times New Roman"),
+        legend.title = element_text(family = "Times New Roman"))
+```
+
+Then, again, you just add that to your plot:
+
+```{r}
+ggplot(data = healthdata, aes(x = height, y = weight, color = physically_active)) +
+  geom_point() +
+  labs(title = "Height is a good predictor of weight") +
+  better_theme
+```

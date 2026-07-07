@@ -1,0 +1,96 @@
+---
+title: "Untitled"
+format: html
+editor: visual
+---
+
+## Setup
+
+```{r}
+library(tidyverse)
+healthdata <- readr::read_csv("data/nhanes.csv")
+```
+
+## Combining Multiple Plots
+
+`ggplot2` has the ability to plot different subsets of the data using the same visualization settings (with `facet_`). However, what if you have two separate plots (even from different data) and you want to create a figure for a paper that combines both plots? This notebooks shows how to do that.
+
+## `patchwork`
+
+[`patchwork`](https://patchwork.data-imaginist.com/) is a package that makes it easy to combine separate `ggplot`s into the same figure.
+
+If you don't have `patchwork` already installed, you need to install it first:
+
+```{r, eval=FALSE}
+install.packages("patchwork")
+```
+
+Let's load `patchwork` to be able to use it:
+
+```{r}
+library(patchwork)
+```
+
+Let's create two `ggplot`s that we will combine into one figure. We're going to save the plots to two variables (`p1` and `p2`) so that we can use those variables later when we combine the plots.
+
+```{r}
+p1 <- ggplot(data = healthdata, aes(x = weight)) +
+  geom_histogram(bins = 20) +
+  labs(title = "Plot 1")
+
+p1
+```
+
+```{r}
+p2 <- ggplot(data = healthdata, aes(x = height, y = weight, color = physically_active)) +
+  geom_point() +
+  labs(title = "Plot 2")
+
+p2
+```
+
+Combine the two plots into one, arranging them horizontally into a row:
+
+```{r}
+p1 + p2
+```
+
+Combine the two plots into one, arranging them vertically in a column:
+
+```{r}
+p1 / p2
+```
+
+### Overall Title and Caption
+
+Let's add an overall title and caption to the figure:
+
+```{r}
+p1 + p2 +
+  plot_annotation(title = "Two cool plots",
+                  caption = "NHANES data")
+```
+
+### Changing legend position
+
+Let's move the legend from the right to the bottom. Since this is about visual aspects of the plot that don't depend on the data, we can use `theme`, specifically `legend.position`:
+
+```{r}
+p1 + p2 +
+  plot_annotation(title = "Two cool plots",
+                  caption = "NHANES data") +
+  theme(legend.position = "bottom")
+```
+
+## TRY IT
+
+Use `patchwork` to put the two plots below together. Add a title.
+
+```{r}
+pe1 <- ggplot(data = healthdata, aes(x = marital_status, y = age)) +
+  geom_boxplot()
+
+pe2 <- ggplot(data = healthdata, aes(x = marital_status)) +
+  geom_bar()
+
+```

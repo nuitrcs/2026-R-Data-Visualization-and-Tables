@@ -1,0 +1,189 @@
+---
+title: "Untitled"
+format: html
+editor: visual
+---
+
+## Setup
+
+```{r}
+library(tidyverse)
+healthdata <- readr::read_csv("data/nhanes.csv")
+```
+
+# Annotations
+
+This notebook covers how to annotate plots. Annotations are text, labels, lines, arrows, or other geometrical objects that you add to a plot to make a point or explain something. For example, say there's one or a few observations that are particularly interesting. You can draw an arrow pointing to them!
+
+## Just one or a few annotations (not from the data)
+
+This section presents how to add one or a few annotations to a plot. The annotations in this section are not based on data. This means that you need to specify what the annotation is and where it should go in the text. You can do this with [`annotate`](https://ggplot2.tidyverse.org/reference/annotate.html), which is a flexible function to add annotations to a plot.
+
+### Text
+
+Let's start with adding text to a point. You specify you want to add text with `geom = "text"` and need to specify the text itsel (`label`) and where to put it on the plot (`x` and `y`).
+
+```{r}
+ggplot(data = healthdata, aes(x = height, y = weight)) +
+  geom_point() +
+  annotate(geom = "text", x = 160, y = 200, label = "Hey, look at this cool observation!")
+```
+
+### Label
+
+Text is just text. It can get lost in the background. For that, you can use a label instead, which adds a rectangle behind the text to make it more visible. For that, you specify `geom = "label"`.
+
+```{r}
+ggplot(data = healthdata, aes(x = height, y = weight)) +
+  geom_point() +
+  annotate(geom = "label", x = 160, y = 200, label = "Hey, look at this cool observation!")
+```
+
+### Arrow
+
+As we said earlier, you can draw arrows on a plot. For that, you'd use `geom = "segment"` and `arrow = arrow()`. You also need to specify where the arrow starts (`x` and `y`) and where it ends (`xend` and `yend`). You can also specify the `color` of the arrow to make it more salient.
+
+```{r}
+ggplot(data = healthdata, aes(x = height, y = weight)) +
+  geom_point() +
+  annotate(geom = "segment", x = 160, y = 193, xend = 164.5, yend = 180, color = "red", arrow = arrow())
+```
+
+### Line
+
+Say there is a threshold that you want to highlight. You can add a line to the plot using `geom = "segment"`. As with arrows, you have to specify where the line starts and ends and, if you want, the color.
+
+```{r}
+ggplot(data = healthdata, aes(x = height, y = weight)) +
+  geom_point() +
+  annotate(geom = "segment", y = 150, yend = 150, x = 140, xend = 200, color = "blue")
+```
+
+### TRY IT
+
+Add an arrow to the plot below pointing to the observation with highest height.
+
+```{r}
+ggplot(data = healthdata, aes(x = height, y = weight)) +
+  geom_point()
+```
+
+## Based on data (`geom`s)
+
+As we saw, `annotate` is useful to add one or a few annotations that are not based on data to a plot. Sometimes, however, you need to add annotations based on data.
+
+For example, say you have a plot of countries' GDP against their human development index and you want to add a label with the names of the countries that are high on GDP but low on human development index.
+
+In this case, instead of `annotate`, you would use `geom_`s. Remember that `geom_`s are about how the data are displayed. Since, say, the name of the country is a column in the data set, the way to add that would be with a `geom`.
+
+This section cover three `geom_`s that are useful to add annotations based on data: `geom_text`, `geom_text_repel`, and `geom_label_repel`.
+
+Before getting into those `geom_`s, however, let's create a variable called `id_out` that has the id of the outliers. We'll use `id_out` to annotate the plots below.
+
+```{r}
+healthdata <- healthdata %>% 
+  mutate(id_out = ifelse(weight > 150, id, NA))
+```
+
+### `geom_text`
+
+To add text based on data, you can use [`geom_text`](https://ggplot2.tidyverse.org/reference/geom_text.html)t.
+
+```{r}
+ggplot(data = healthdata, aes(x = height, y = weight, label = id_out)) +
+  geom_point() +
+  geom_text()
+```
+
+As you can see, the text is right on top of the observations, which is not great. You can change the position of the text though. Here we change the vertical direction:
+
+```{r}
+ggplot(data = healthdata, aes(x = height, y = weight, label = id_out)) +
+  geom_point() +
+  geom_text(vjust = -0.5)
+```
+
+It's a bit better, but still not great. The text overlaps a lot.
+
+### `geom_text_repel`
+
+To address the overlap, we can use the `ggrepel` package. Specifically, [`geom_text_repel`](https://ggrepel.slowkow.com/reference/geom_text_repel) adds text to the plot and the text labels repel away from each other and away from the data points.
+
+If you don't already have `ggrepel` installed, you have to install it first:
+
+```{r, eval=FALSE}
+install.packages("ggrepel")
+```
+
+Now we can use it:
+
+```{r}
+ggplot(data = healthdata, aes(x = height, y = weight, label = id_out)) +
+  geom_point() +
+  ggrepel::geom_text_repel()
+```
+
+It looks a bit better, but text can be hard to see. Remember that, in addition to text, there are labels.
+
+### `geom_label_repel`
+
+[`geom_label_repel`](https://ggrepel.slowkow.com/reference/geom_text_repel) adds text to the plot and a rectangle underneath the text (making it easier to read) and the text labels repel away from each other and away from the data points.
+
+```{r}
+ggplot(data = healthdata, aes(x = height, y = weight, label = id_out)) +
+  geom_point() +
+  ggrepel::geom_label_repel()
+```
+
+### TRY IT
+
+Add a label with the id to the observations in the plot below who are lower than 145 in the x axis. Hint: you may need to manipulate the data before plotting it.
+
+```{r}
+ggplot(data = healthdata, aes(x = height, y = weight)) +
+  geom_point()
+```
+
+# Facets
+
+Sometimes you want to plot different subsets of the data using the same visualization settings. Facets help you do this with functions that start with `facet_`.
+
+[`facet_grid`](https://ggplot2.tidyverse.org/reference/facet_grid.html) is the most common function to add facets to a plot. It forms a matrix of panels defined by row and column faceting variables.
+
+Here we're using `rows` to specify that we want each value of `physically_active` to be a different row (as opposed to `cols`). We need to use `vars` to specify the variable to use for the facets. Think of `vars` as `aes` -- it's the way to tell `ggplot2` that you want to use columns from the data set specified in `ggplot`.
+
+```{r}
+ggplot(data = healthdata, aes(x = weight)) +
+  geom_histogram(bins = 20) +
+  facet_grid(rows = vars(physically_active))
+```
+
+## TRY IT
+
+Facet the plot below by `gender`, with each `gender` being a different column.
+
+```{r}
+ggplot(data = healthdata, aes(x = weight)) +
+  geom_histogram(bins = 20)
+```
+
+# Theme elements: facets
+
+Themes control visual aspects of a plot that you may want to change independently of the data (the background color, the font, the size of the legend).
+
+Themes have plot, axis, legend, panel, and faceting elements.
+
+Here we focus on one of the faceting elements (`strip.background`, `strip.text`, `strip.text.x`, `strip.text.y`, `panel.spacing`, `panel.spacing.x`, `panel.spacing.y`): the margin between facets (`panel.spacing`).
+
+## Margin between facets
+
+Here we're going to use `unit` to specify the exact distance and unit for the margin between facets.
+
+```{r}
+ggplot(data = healthdata, aes(x = weight)) +
+  geom_histogram(bins = 20) +
+  facet_grid(rows = vars(physically_active, gender)) +
+  theme(panel.spacing = unit(0.5, units = "cm"))
+```
+
+There are other faceting elements that you can control: https://ggplot2-book.org/themes.html#faceting-elements
