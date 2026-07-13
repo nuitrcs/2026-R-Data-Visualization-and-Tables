@@ -1,7 +1,9 @@
 ---
-title: "Untitled"
+title: "multipanel figures"
 format: html
 editor: visual
+editor_options: 
+  chunk_output_type: console
 ---
 
 ## Setup
