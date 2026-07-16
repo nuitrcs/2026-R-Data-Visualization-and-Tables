@@ -2,6 +2,6 @@ Repository for the Data Visualization and Tables with R workshop taught by [Nort
 
 ***
 
-[How to download these materials](https://sites.northwestern.edu/researchcomputing/resources/downloading-from-github/).
+[How to download these materials](https://rcdsdocs.it.northwestern.edu/tutorials/git/workshop-materials.html).
 
-[How to set up R and RStudio](https://sites.northwestern.edu/researchcomputing/resources/r-and-rstudio/).
+[How to set up R and RStudio](https://rcdsdocs.it.northwestern.edu/tutorials/r/r-installation.html#r-install).
